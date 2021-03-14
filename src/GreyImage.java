@@ -37,8 +37,11 @@ public class GreyImage {
         this.dimX = image.getSizeX();
         this.dimY = image.getSizeY();
         this.size = image.getSizeData();
+        this.data = new short[this.size];
 
-        this.data = image.data;
+        for (int i = 0; i < size; i++) {
+            data[i] = image.getPixel(i);
+        }
     }
 
     public int getSizeX() {
@@ -327,31 +330,86 @@ public class GreyImage {
         return up/down;
     }
 
-    public GreyImage erode(Mask B) throws Exception {
-
-        GreyImage filtre = null;
-        try {
-            filtre = new GreyImage(this.dimX, this.dimY);
-        } catch (Exception e) {
-            System.out.println("MARCHE PAS");
-        }
-
-
-        int p = (B.getSizeX() - 1) / 2;
-
-        for(int i=p;i<this.getSizeX()-1;i++) {
-            for(int j=p;j<this.getSizeY()-1;j++) {
-
-                if(this.getPixel(i,j) != 0) {
-                    for(int k = 0;k<=2*p;k++) {
-                        for(int l = 0; l<=2*p; l++) {
-                            if(B.getPixel(i,j) == 1 && this.getPixel(i + k - p, j + l - p) == 0) {
-                                this.setPixel(i,j, (short)255);
+    public GreyImage dilate(Mask m) throws Exception {
+        GreyImage filtre = new GreyImage(this);
+        int p = (m.getSizeX() - 1) / 2;
+        for (int i = p; i < this.getSizeX() - p; i++) {
+            for (int j = p; j < this.getSizeY() - p; j++) {
+                if (this.getPixel(i, j) != 0) {
+                    for (int k = 0; k <= 2 * p; k++) {
+                        for (int l = 0; l <= 2 * p; l++) {
+                            if (m.getPixel(k, l) == 1 && this.getPixel(i, j) == 255) {
+                                filtre.setPixel(i + k - p, j + l - p, (short) 255);
                             }
                         }
                     }
                 }
+            }
+        }
+        return filtre;
+    }
 
+    public GreyImage erode(Mask B) throws Exception {
+        this.negative();
+        GreyImage filtre = new GreyImage(this);
+
+
+
+        int p = (B.getSizeX() - 1) / 2;
+        for (int i = p; i < this.getSizeX() - p; i++) {
+            for (int j = p; j < this.getSizeY() - p; j++) {
+                if (this.getPixel(i, j) != 0) {
+                    for (int k = 0; k <= 2 * p; k++) {
+                        for (int l = 0; l <= 2 * p; l++) {
+                            if (B.getPixel(k, l) == 1 && this.getPixel(i, j) == 255) {
+                                filtre.setPixel(i + k - p, j + l - p, (short) 255);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        filtre.negative();
+        this.negative();
+        return filtre;
+    }
+
+    public GreyImage open(Mask B) throws Exception {
+        GreyImage filtre = new GreyImage(this);
+
+        filtre = filtre.erode(B);
+        filtre = filtre.dilate(B);
+
+        return filtre;
+    }
+
+    public GreyImage close(Mask B) throws Exception {
+        GreyImage filtre = new GreyImage(this);
+
+        filtre = filtre.dilate(B);
+        filtre = filtre.erode(B);
+
+        return filtre;
+    }
+
+    public GreyImage morphologicalGradient() throws Exception {
+        Mask m = Mask.makeBall1();
+        GreyImage filtre = new GreyImage(this);
+        // On dilate
+        GreyImage filtre2 = this.dilate(m);
+        // On erode
+        GreyImage filtre3 = this.erode(m);
+
+        // Les pixels de la frontière doivent être blanc dans l'image dilaté
+        // et noir pour l'image érodé
+        for (int i = 0; i < this.getSizeX(); i++) {
+            for (int j = 0; j < this.getSizeY(); j++) {
+                if (filtre2.getPixel(i, j) == 255 && filtre3.getPixel(i,j) == 0 ) {
+                    filtre.setPixel(i, j,(short) 255);
+                }
+                else{
+                    filtre.setPixel(i, j,(short) 0);
+                }
             }
         }
         return filtre;

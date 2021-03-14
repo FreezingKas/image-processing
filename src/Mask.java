@@ -31,7 +31,7 @@ public class Mask extends GreyImage{
                         1,1,1,1,1,
                         0,1,1,1,0,
                         0,0,1,0,0};
-        Mask im = new Mask(9,9, data);
+        Mask im = new Mask(5,5, data);
 
         return im;
 
